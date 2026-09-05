@@ -1,0 +1,24 @@
+{
+  "accuracy": 85.2,
+  "labels": [
+    "الرقم 2 - لغة الإشارة السعودية",
+    "الرقم 5 - لغة الإشارة السعودية"
+  ],
+  "confusion_matrix": [
+    [
+      9,
+      0
+    ],
+    [
+      4,
+      14
+    ]
+  ],
+  "train_samples": 30,
+  "test_samples": 27,
+  "random_seed": 42,
+  "split_strategy": "participant_holdout",
+  "test_participants": [
+    "P02"
+  ]
+}

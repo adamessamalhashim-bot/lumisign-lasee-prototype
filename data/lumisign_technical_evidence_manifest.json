@@ -1,0 +1,318 @@
+{
+  "solution": "LumiSign Connect",
+  "engine": "LASEE — LumiSign Adaptive Sign Evaluation Engine",
+  "generated_at": "2026-09-03T19:33:00.220037+00:00",
+  "language_scope": "Saudi Sign Language",
+  "implemented_pipeline": [
+    "Camera or uploaded image",
+    "MediaPipe extraction of 21 three-dimensional hand landmarks",
+    "63 translation- and scale-normalized numeric features",
+    "Random Forest classification with participant holdout",
+    "LASEE geometric scoring and Arabic corrective feedback",
+    "Ghost Hand reference overlay",
+    "SHA-256 linked audit trail"
+  ],
+  "responsible_ai_controls": [
+    "Participant-level test separation",
+    "Classifier confidence threshold and human-review status",
+    "Component-level geometric explanation",
+    "Raw camera image is not stored in the training dataset",
+    "Tamper-evident decision log"
+  ],
+  "dataset_card": {
+    "total_samples": 57,
+    "signs": {
+      "الرقم 5 - لغة الإشارة السعودية": 38,
+      "الرقم 2 - لغة الإشارة السعودية": 19
+    },
+    "participant_count": 2,
+    "language": "Saudi Sign Language"
+  },
+  "model_card": {
+    "accuracy": 85.2,
+    "labels": [
+      "الرقم 2 - لغة الإشارة السعودية",
+      "الرقم 5 - لغة الإشارة السعودية"
+    ],
+    "confusion_matrix": [
+      [
+        9,
+        0
+      ],
+      [
+        4,
+        14
+      ]
+    ],
+    "train_samples": 30,
+    "test_samples": 27,
+    "random_seed": 42,
+    "split_strategy": "participant_holdout",
+    "test_participants": [
+      "P02"
+    ]
+  },
+  "participant_holdout_validation": {
+    "language": "Saudi Sign Language",
+    "sign_name": "الرقم 5 - لغة الإشارة السعودية",
+    "method": "participant_holdout_multi_reference_lasee",
+    "reference_participant": "P01",
+    "test_participant": "P02",
+    "reference_samples": 20,
+    "test_samples": 18,
+    "acceptance_threshold": 85.0,
+    "accepted_samples": 16,
+    "acceptance_rate": 88.9,
+    "mean_overall_score": 92.0,
+    "median_overall_score": 94.2,
+    "minimum_overall_score": 78.1,
+    "maximum_overall_score": 97.5,
+    "mean_hand_shape_score": 85.8,
+    "mean_finger_angles_score": 99.5,
+    "mean_palm_orientation_score": 92.5,
+    "mean_hand_position_score": 90.8,
+    "mean_detection_confidence": 97.6,
+    "test_results": [
+      {
+        "sample_id": "f125a41d-6704-4570-ad8e-964e7a341ebb",
+        "matched_reference_sample_id": "b4fd1a1f-80f4-46ed-984b-a026bbebe5e6",
+        "overall_score": 97.4,
+        "hand_shape_score": 93.6,
+        "finger_angles_score": 99.8,
+        "palm_orientation_score": 99.5,
+        "hand_position_score": 99.8,
+        "detection_confidence": 97.8,
+        "accepted": true
+      },
+      {
+        "sample_id": "d33260b1-9aff-47fb-b58e-a44c55424cda",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 97.5,
+        "hand_shape_score": 95.2,
+        "finger_angles_score": 99.7,
+        "palm_orientation_score": 98.9,
+        "hand_position_score": 95.9,
+        "detection_confidence": 97.6,
+        "accepted": true
+      },
+      {
+        "sample_id": "73c638cd-4d31-4110-b124-9a0cd3644008",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 96.6,
+        "hand_shape_score": 93.5,
+        "finger_angles_score": 99.7,
+        "palm_orientation_score": 97.8,
+        "hand_position_score": 96.3,
+        "detection_confidence": 97.9,
+        "accepted": true
+      },
+      {
+        "sample_id": "b4f97c2b-b03d-4c2a-9778-87dcf2927c08",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 94.7,
+        "hand_shape_score": 91.5,
+        "finger_angles_score": 99.7,
+        "palm_orientation_score": 91.7,
+        "hand_position_score": 97.0,
+        "detection_confidence": 97.7,
+        "accepted": true
+      },
+      {
+        "sample_id": "e62178e2-419d-47fa-b5bf-e64434112d6d",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 87.6,
+        "hand_shape_score": 79.7,
+        "finger_angles_score": 99.4,
+        "palm_orientation_score": 81.0,
+        "hand_position_score": 93.2,
+        "detection_confidence": 97.5,
+        "accepted": true
+      },
+      {
+        "sample_id": "ff710ecc-156d-492d-94b5-111660371c05",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 95.2,
+        "hand_shape_score": 90.8,
+        "finger_angles_score": 99.5,
+        "palm_orientation_score": 99.7,
+        "hand_position_score": 88.9,
+        "detection_confidence": 98.8,
+        "accepted": true
+      },
+      {
+        "sample_id": "60f0812d-3120-45f4-9549-d0b5ac3ae0c2",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 93.5,
+        "hand_shape_score": 90.5,
+        "finger_angles_score": 99.6,
+        "palm_orientation_score": 96.0,
+        "hand_position_score": 80.1,
+        "detection_confidence": 98.4,
+        "accepted": true
+      },
+      {
+        "sample_id": "57f1d2d0-6f3c-40f8-bdff-3cbe928aba0e",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 91.9,
+        "hand_shape_score": 84.7,
+        "finger_angles_score": 99.5,
+        "palm_orientation_score": 91.9,
+        "hand_position_score": 94.6,
+        "detection_confidence": 97.5,
+        "accepted": true
+      },
+      {
+        "sample_id": "a802f339-8ba3-485c-8cda-30a5171741e4",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 95.1,
+        "hand_shape_score": 92.7,
+        "finger_angles_score": 99.6,
+        "palm_orientation_score": 90.6,
+        "hand_position_score": 99.1,
+        "detection_confidence": 97.0,
+        "accepted": true
+      },
+      {
+        "sample_id": "e67b812d-8ebf-4a88-87d7-93b6b1981981",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 85.8,
+        "hand_shape_score": 77.7,
+        "finger_angles_score": 99.3,
+        "palm_orientation_score": 75.8,
+        "hand_position_score": 93.7,
+        "detection_confidence": 96.9,
+        "accepted": true
+      },
+      {
+        "sample_id": "7e30d097-466a-472e-8152-a5b3eb70fecc",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 85.8,
+        "hand_shape_score": 77.7,
+        "finger_angles_score": 99.3,
+        "palm_orientation_score": 75.8,
+        "hand_position_score": 93.7,
+        "detection_confidence": 96.9,
+        "accepted": true
+      },
+      {
+        "sample_id": "bc76ea5f-9cf3-439f-93bd-617bf00441b7",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 93.5,
+        "hand_shape_score": 88.4,
+        "finger_angles_score": 99.7,
+        "palm_orientation_score": 94.6,
+        "hand_position_score": 91.3,
+        "detection_confidence": 98.3,
+        "accepted": true
+      },
+      {
+        "sample_id": "bca43805-abe9-4515-8b74-60a8ef31288c",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 95.0,
+        "hand_shape_score": 92.9,
+        "finger_angles_score": 99.7,
+        "palm_orientation_score": 96.3,
+        "hand_position_score": 85.0,
+        "detection_confidence": 98.7,
+        "accepted": true
+      },
+      {
+        "sample_id": "6f1b2716-a32f-4805-a0e2-ce43842acccf",
+        "matched_reference_sample_id": "b4fd1a1f-80f4-46ed-984b-a026bbebe5e6",
+        "overall_score": 96.2,
+        "hand_shape_score": 97.4,
+        "finger_angles_score": 99.8,
+        "palm_orientation_score": 99.0,
+        "hand_position_score": 75.0,
+        "detection_confidence": 98.4,
+        "accepted": true
+      },
+      {
+        "sample_id": "f76cdf93-8f5a-4b9f-86f0-70924208248a",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 93.7,
+        "hand_shape_score": 88.6,
+        "finger_angles_score": 99.5,
+        "palm_orientation_score": 95.6,
+        "hand_position_score": 90.9,
+        "detection_confidence": 97.7,
+        "accepted": true
+      },
+      {
+        "sample_id": "5f266c46-33bc-44ab-9518-d218d4b3499e",
+        "matched_reference_sample_id": "b4fd1a1f-80f4-46ed-984b-a026bbebe5e6",
+        "overall_score": 83.1,
+        "hand_shape_score": 58.5,
+        "finger_angles_score": 99.4,
+        "palm_orientation_score": 98.3,
+        "hand_position_score": 94.5,
+        "detection_confidence": 96.9,
+        "accepted": false
+      },
+      {
+        "sample_id": "4dfe808e-3632-4934-8da6-0f32c4cdebdb",
+        "matched_reference_sample_id": "b7f8ae33-e6ea-4543-87c0-f80dcccafecd",
+        "overall_score": 78.1,
+        "hand_shape_score": 56.9,
+        "finger_angles_score": 98.9,
+        "palm_orientation_score": 86.2,
+        "hand_position_score": 76.2,
+        "detection_confidence": 98.1,
+        "accepted": false
+      },
+      {
+        "sample_id": "6e5f28dd-20bd-40ab-af32-c7cacb414d62",
+        "matched_reference_sample_id": "f8648367-ba25-4d91-9139-64ecd5a0b8af",
+        "overall_score": 95.8,
+        "hand_shape_score": 94.0,
+        "finger_angles_score": 99.7,
+        "palm_orientation_score": 96.0,
+        "hand_position_score": 90.1,
+        "detection_confidence": 97.8,
+        "accepted": true
+      }
+    ],
+    "claim_scope": "Positive cross-participant consistency validation for one static Saudi Sign Language sign; not multi-class recognition accuracy."
+  },
+  "audit": {
+    "valid": true,
+    "events": 62,
+    "algorithm": "SHA-256"
+  },
+  "artifact_integrity": [
+    {
+      "path": "data/saudi_sign_samples.jsonl",
+      "size_bytes": 172304,
+      "sha256": "c5caa11af88614523ba0683e6faac17f6cdfa4d563d5bbf013f29f0ef5291e7a"
+    },
+    {
+      "path": "data/saudi_sign_classifier.joblib",
+      "size_bytes": 170694,
+      "sha256": "860b5840dcfa412ab8e32ed0d4af9a2a2a8e63881de3d2962f810582bce3f1b0"
+    },
+    {
+      "path": "data/saudi_sign_classifier.report.json",
+      "size_bytes": 400,
+      "sha256": "a0763e99a80414d88bb148e7bccff004a9af1e8d9482ed5689c1ee7562657dea"
+    },
+    {
+      "path": "data/participant_holdout_validation.json",
+      "size_bytes": 7856,
+      "sha256": "be9392196b4326ad1b1361e3701943aeeee05dfc4ffacb74c3b862016cfd371e"
+    },
+    {
+      "path": "data/audit_log.jsonl",
+      "size_bytes": 32435,
+      "sha256": "bae592e5d359b2e1337dd072e4ff72789fa1b4cc8ae13645cd62266f22404b9d"
+    }
+  ],
+  "claim_scope": "Validated prototype for two static Saudi Sign Language signs and two pseudonymous participants; not evidence of full-vocabulary or dynamic-sign generalization.",
+  "automated_verification": {
+    "dataset_schema_21x3_and_63_features": true,
+    "two_or_more_signs": true,
+    "two_or_more_participants": true,
+    "participant_holdout_model_test": true,
+    "participant_holdout_lasee_test": true,
+    "sha256_audit_chain": true
+  }
+}
