@@ -1,7 +1,7 @@
 {
   "solution": "LumiSign Connect",
   "engine": "LASEE — LumiSign Adaptive Sign Evaluation Engine",
-  "generated_at": "2026-09-03T19:33:00.220037+00:00",
+  "generated_at": "2026-09-05T13:03:44.230446+00:00",
   "language_scope": "Saudi Sign Language",
   "implemented_pipeline": [
     "Camera or uploaded image",
