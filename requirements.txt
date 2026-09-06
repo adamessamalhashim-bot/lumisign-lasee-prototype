@@ -1,7 +1,7 @@
 streamlit==1.61.0
 Authlib==1.5.2
 opencv-python==4.11.0.86
-mediapipe==0.10.21
+mediapipe==0.10.35
 numpy==1.26.4
 Pillow==11.1.0
 pytest==8.3.5
