@@ -1,0 +1,24 @@
+تحديث LumiSign + Supabase
+==========================
+
+1) فك ضغط الملف.
+2) افتح مستودع GitHub: adamessamalhashim-bot/lumisign-lasee-prototype
+3) اختر Add file ثم Upload files.
+4) ارفع جميع محتويات مجلد LumiSign_Portal_Ready إلى جذر المستودع.
+5) تأكد أن Main file path في Streamlit هو: portal_app.py
+6) اضغط Commit changes وانتظر إعادة تشغيل التطبيق.
+
+الملفات المهمة في هذا التحديث:
+- portal_app.py
+- requirements.txt
+- core/cloud_store.py
+
+لا تضع مفتاح Supabase داخل GitHub. يجب أن يبقى فقط في Streamlit Secrets.
+
+وظائف الربط السحابي:
+- حفظ المراجع المسجلة بشكل دائم.
+- حفظ عينات التدريب بشكل دائم.
+- استخدام المراجع السحابية في صفحة التحليل.
+- تدريب المصنف من أحدث العينات السحابية.
+- حفظ إصدارات النموذج ونتائج التقييم.
+- حفظ محاولات المستخدمين وعرضها للأدمن.

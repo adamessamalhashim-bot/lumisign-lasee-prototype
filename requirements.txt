@@ -8,3 +8,4 @@ pytest==8.3.5
 scikit-learn==1.5.2
 joblib==1.4.2
 pandas==2.2.3
+supabase>=2.15,<3

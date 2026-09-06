@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from PIL import Image
 
 from core.audit import HashChainAuditLog
 from core.classifier import SaudiSignClassifier
+from core.cloud_store import CloudStore, records_to_training_bundle
 from core.dataset import SaudiSignDataset, normalized_features
 from core.evidence import build_evidence_manifest, evidence_html
 from core.hand_analyzer import HandAnalyzer, ghost_overlay
@@ -108,13 +110,36 @@ def get_analyzer() -> HandAnalyzer:
 
 
 @st.cache_resource
+def get_cloud_store() -> CloudStore | None:
+    try:
+        config = st.secrets["supabase"]
+        store = CloudStore(str(config["url"]), str(config["key"]))
+        store.health_check()
+        return store
+    except Exception:
+        return None
+
+
+@st.cache_resource
 def get_classifier() -> SaudiSignClassifier | None:
+    cloud = get_cloud_store()
+    if cloud is not None:
+        try:
+            rows = cloud.training_records()
+            x, y, participant_ids = records_to_training_bundle(rows)
+            labels, counts = np.unique(y, return_counts=True)
+            if len(labels) >= 2 and int(counts.min()) >= 4:
+                model = SaudiSignClassifier("/tmp/lumisign_cloud_classifier.joblib")
+                model.train(x, y, participant_ids)
+                return model
+        except Exception:
+            pass
     model = SaudiSignClassifier()
     return model if model.load() else None
 
 
 @st.cache_data
-def reference_bank() -> dict[str, np.ndarray]:
+def local_reference_bank() -> dict[str, np.ndarray]:
     """Build a deterministic representative reference from the included P01 samples."""
     rows = SaudiSignDataset().records()
     bank: dict[str, np.ndarray] = {}
@@ -131,6 +156,18 @@ def reference_bank() -> dict[str, np.ndarray]:
         distances = np.linalg.norm(features[:, None, :] - features[None, :, :], axis=2)
         medoid_index = int(np.argmin(distances.mean(axis=1)))
         bank[sign_name] = landmarks[medoid_index]
+    return bank
+
+
+@st.cache_data(ttl=20)
+def reference_bank() -> dict[str, np.ndarray]:
+    bank = local_reference_bank().copy()
+    cloud = get_cloud_store()
+    if cloud is not None:
+        try:
+            bank.update(cloud.reference_bank())
+        except Exception:
+            pass
     return bank
 
 
@@ -210,9 +247,13 @@ def analysis_page() -> None:
         else:
             st.warning(message)
 
+    predicted_sign = None
+    classifier_confidence = None
     classifier = get_classifier()
     if classifier is not None:
         prediction = classifier.predict_details(normalized_features(attempt))
+        predicted_sign = prediction["predicted_sign"]
+        classifier_confidence = prediction["confidence"]
         st.markdown("### التعرّف الآلي")
         prediction_columns = st.columns(3)
         prediction_columns[0].metric("الإشارة المتوقعة", prediction["predicted_sign"])
@@ -227,6 +268,25 @@ def analysis_page() -> None:
             }
         ).set_index("الإشارة")
         st.bar_chart(probability_frame)
+
+    cloud = get_cloud_store()
+    if cloud is not None:
+        try:
+            cloud.save_attempt(
+                {
+                    "user_email": user_email,
+                    "target_sign": target,
+                    "predicted_sign": predicted_sign,
+                    "overall_score": result.overall_score,
+                    "hand_shape_score": result.hand_shape_score,
+                    "finger_angles_score": result.finger_angles_score,
+                    "palm_orientation_score": result.palm_orientation_score,
+                    "hand_position_score": result.hand_position_score,
+                    "classifier_confidence": classifier_confidence,
+                }
+            )
+        except Exception:
+            st.caption("تعذّر حفظ النتيجة في السجل السحابي، لكن التحليل اكتمل بنجاح.")
 
     st.divider()
     st.caption("LumiSign LASEE · نموذج أولي لتقييم الإشارات السعودية الثابتة")
@@ -244,8 +304,24 @@ def admin_dashboard() -> None:
     st.caption("هذه الصفحة لا تظهر إلا لحساب الأدمن المعتمد.")
 
     dataset = SaudiSignDataset()
-    summary = dataset.summary()
+    cloud = get_cloud_store()
+    if cloud is not None:
+        st.success("قاعدة Supabase متصلة · جميع التغييرات تُحفظ بشكل دائم")
+        try:
+            summary = cloud.dataset_summary()
+            active_model = cloud.active_model()
+        except Exception as exc:
+            st.warning(f"تعذّر قراءة بعض البيانات السحابية: {exc}")
+            summary = dataset.summary()
+            active_model = None
+    else:
+        st.warning("الاتصال بقاعدة Supabase غير متاح؛ يتم عرض البيانات المحلية.")
+        summary = dataset.summary()
+        active_model = None
     model_report = load_json("data/saudi_sign_classifier.report.json")
+    if active_model:
+        model_report = dict(active_model.get("metrics") or model_report)
+        model_report["accuracy"] = active_model.get("accuracy", model_report.get("accuracy", 0))
     validation = load_json("data/participant_holdout_validation.json")
     audit_valid, audit_events = HashChainAuditLog().verify()
 
@@ -288,6 +364,17 @@ def admin_dashboard() -> None:
         use_container_width=True,
     )
 
+    if cloud is not None:
+        try:
+            recent = cloud.recent_attempts()
+            st.markdown("### أحدث محاولات المستخدمين")
+            if recent:
+                st.dataframe(pd.DataFrame(recent), hide_index=True, use_container_width=True)
+            else:
+                st.info("لا توجد محاولات مستخدمين محفوظة حتى الآن.")
+        except Exception as exc:
+            st.caption(f"تعذّر تحميل سجل المحاولات: {exc}")
+
 
 def admin_image_input(key: str):
     source = st.radio(
@@ -309,6 +396,7 @@ def admin_references() -> None:
     st.markdown("## تسجيل مرجع جديد")
     st.caption("يُحفظ 21 معلمًا ثلاثي الأبعاد مع المصدر الرسمي للإشارة.")
     store = ReferenceStore()
+    cloud = get_cloud_store()
     audit = HashChainAuditLog()
     sign_name = st.text_input(
         "اسم الإشارة",
@@ -329,22 +417,34 @@ def admin_references() -> None:
         elif not sign_name.strip():
             st.error("أدخل اسم الإشارة أولًا.")
         else:
-            path = store.save(sign_name, points, handedness or "Unknown", source_url)
-            audit.append(
-                "reference_created",
-                {
-                    "sign_name": sign_name,
-                    "handedness": handedness,
-                    "official_source_url": source_url,
-                },
-            )
-            st.image(
-                cv2.cvtColor(get_analyzer().draw(frame, points), cv2.COLOR_BGR2RGB),
-                caption="تم اكتشاف 21 معلمًا لليد",
-            )
-            st.success(f"حُفظ المرجع: {path.name} · ثقة الكشف {confidence * 100:.1f}%")
+            try:
+                if cloud is not None:
+                    cloud.save_reference(sign_name, source_url, points, user_email)
+                    saved_label = "قاعدة Supabase"
+                else:
+                    path = store.save(sign_name, points, handedness or "Unknown", source_url)
+                    saved_label = path.name
+                audit.append(
+                    "reference_created",
+                    {
+                        "sign_name": sign_name,
+                        "handedness": handedness,
+                        "official_source_url": source_url,
+                    },
+                )
+                reference_bank.clear()
+                st.image(
+                    cv2.cvtColor(get_analyzer().draw(frame, points), cv2.COLOR_BGR2RGB),
+                    caption="تم اكتشاف 21 معلمًا لليد",
+                )
+                st.success(f"حُفظ المرجع في {saved_label} · ثقة الكشف {confidence * 100:.1f}%")
+            except Exception as exc:
+                st.error(f"تعذّر حفظ المرجع: {exc}")
 
-    signs = store.list_signs()
+    try:
+        signs = [row["sign_name"] for row in cloud.list_signs()] if cloud else store.list_signs()
+    except Exception:
+        signs = store.list_signs()
     st.markdown("### المراجع المسجلة")
     st.write(signs if signs else "لا توجد مراجع مضافة يدويًا حتى الآن.")
 
@@ -353,6 +453,7 @@ def admin_dataset() -> None:
     st.markdown("## جمع بيانات التدريب")
     st.caption("لا تُحفظ الصورة الخام؛ تُحفظ معالم اليد والخصائص الهندسية فقط.")
     dataset = SaudiSignDataset()
+    cloud = get_cloud_store()
     audit = HashChainAuditLog()
     sign_name = st.text_input(
         "اسم الإشارة السعودية",
@@ -373,36 +474,63 @@ def admin_dataset() -> None:
             st.error("لم يتم اكتشاف اليد. حسّن الإضاءة وأظهر اليد كاملة.")
         else:
             try:
-                record = dataset.append(
-                    sign_name,
-                    points,
-                    participant,
-                    source_url,
-                    handedness or "Unknown",
-                    confidence,
-                )
+                if cloud is not None:
+                    record = cloud.add_training_sample(
+                        sign_name,
+                        participant,
+                        source_url,
+                        points,
+                        confidence,
+                        user_email,
+                    )
+                    sample_id = record.get("id", "تم الحفظ")
+                else:
+                    record = dataset.append(
+                        sign_name,
+                        points,
+                        participant,
+                        source_url,
+                        handedness or "Unknown",
+                        confidence,
+                    )
+                    sample_id = record["sample_id"]
                 audit.append(
                     "training_sample_created",
                     {
-                        "sample_id": record["sample_id"],
+                        "sample_id": sample_id,
                         "sign_name": sign_name,
                         "participant_id": participant,
                     },
                 )
-                st.success(f"حُفظت العينة: {record['sample_id']}")
-            except ValueError as exc:
-                st.error(str(exc))
+                get_classifier.clear()
+                st.success(f"حُفظت العينة بشكل دائم: {sample_id}")
+            except Exception as exc:
+                st.error(f"تعذّر حفظ العينة: {exc}")
     st.markdown("### ملخص البيانات")
-    st.json(dataset.summary())
+    try:
+        st.json(cloud.dataset_summary() if cloud else dataset.summary())
+    except Exception as exc:
+        st.warning(f"تعذّر تحميل الملخص السحابي: {exc}")
 
 
 def admin_training() -> None:
     st.markdown("## تدريب النموذج واختباره")
     st.caption("يُفصل مشارك كامل للاختبار المستقل كلما توفرت بيانات مشاركين.")
     dataset = SaudiSignDataset()
+    cloud = get_cloud_store()
     classifier = SaudiSignClassifier()
     audit = HashChainAuditLog()
-    summary = dataset.summary()
+    try:
+        records = cloud.training_records() if cloud else dataset.records()
+        if cloud:
+            summary = cloud.dataset_summary()
+            x, y, participant_ids = records_to_training_bundle(records)
+        else:
+            summary = dataset.summary()
+            x, y, participant_ids = dataset.training_bundle()
+    except Exception as exc:
+        st.error(f"تعذّر تحميل بيانات التدريب: {exc}")
+        return
     if summary["total_samples"]:
         st.dataframe(
             pd.DataFrame(
@@ -413,12 +541,19 @@ def admin_training() -> None:
         )
     if not st.button("تدريب النموذج وإنتاج دليل الاختبار", type="primary"):
         return
-    x, y, participant_ids = dataset.training_bundle()
     try:
         if len(summary["signs"]) == 1:
-            report = validate_single_sign_participant_holdout(dataset.records())
+            report = validate_single_sign_participant_holdout(records)
             report_path = save_validation_report(report, "data/participant_holdout_validation.json")
             audit.append("participant_holdout_validated", report.to_dict())
+            if cloud:
+                version = datetime.now(timezone.utc).strftime("lasee-%Y%m%d-%H%M%S")
+                cloud.save_model_version(
+                    version,
+                    report.acceptance_rate,
+                    report.to_dict(),
+                    user_email,
+                )
             columns = st.columns(4)
             columns[0].metric("متوسط LASEE", f"{report.mean_overall_score:.1f}%")
             columns[1].metric("الوسيط", f"{report.median_overall_score:.1f}%")
@@ -433,22 +568,30 @@ def admin_training() -> None:
         else:
             report = classifier.train(x, y, participant_ids)
             audit.append("model_trained", report.to_dict())
+            if cloud:
+                version = datetime.now(timezone.utc).strftime("rf-%Y%m%d-%H%M%S")
+                cloud.save_model_version(version, report.accuracy, report.to_dict(), user_email)
+            get_classifier.clear()
             st.metric("دقة مجموعة الاختبار", f"{report.accuracy:.1f}%")
             st.dataframe(
                 pd.DataFrame(report.confusion_matrix, index=report.labels, columns=report.labels),
                 use_container_width=True,
             )
             st.success("تم حفظ النموذج وتقرير الاختبار.")
-    except ValueError as exc:
+    except Exception as exc:
         st.error(str(exc))
 
 
 def admin_governance() -> None:
     st.markdown("## دليل الحوكمة والإثبات التقني")
     dataset = SaudiSignDataset()
+    cloud = get_cloud_store()
     audit = HashChainAuditLog()
     valid, count = audit.verify()
-    dataset_card = dataset.summary()
+    try:
+        dataset_card = cloud.dataset_summary() if cloud else dataset.summary()
+    except Exception:
+        dataset_card = dataset.summary()
     manifest = build_evidence_manifest(dataset_card, valid, count)
 
     columns = st.columns(4)
