@@ -83,7 +83,7 @@ def login_page() -> None:
             st.login()
 
 
-if not st.user.is_logged_in:
+if not bool(getattr(st.user, "is_logged_in", False)):
     login_page()
     st.stop()
 
