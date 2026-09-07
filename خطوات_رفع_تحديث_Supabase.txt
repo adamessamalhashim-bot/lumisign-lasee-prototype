@@ -5,13 +5,32 @@
 2) افتح مستودع GitHub: adamessamalhashim-bot/lumisign-lasee-prototype
 3) اختر Add file ثم Upload files.
 4) ارفع جميع محتويات مجلد LumiSign_Portal_Ready إلى جذر المستودع.
-5) تأكد أن Main file path في Streamlit هو: portal_app.py
+5) استخدم تطبيق Streamlit واحد فقط، واجعل Main file path هو: app.py
 6) اضغط Commit changes وانتظر إعادة تشغيل التطبيق.
 
 الملفات المهمة في هذا التحديث:
 - portal_app.py
+- app.py
+- public_app.py
 - requirements.txt
 - core/cloud_store.py
+
+جميع ملفات التشغيل الثلاثة تفتح النظام نفسه، لذلك لن تظهر واجهات مختلفة.
+
+ترتيب Streamlit Secrets المطلوب:
+
+[auth]
+redirect_uri = "https://رابط-تطبيقك.streamlit.app/oauth2callback"
+cookie_secret = "قيمة إنجليزية قوية"
+
+[auth.google]
+client_id = "Google Client ID"
+client_secret = "Google Client Secret"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+
+[supabase]
+url = "https://معرف-مشروعك.supabase.co"
+key = "Supabase secret key"
 
 لا تضع مفتاح Supabase داخل GitHub. يجب أن يبقى فقط في Streamlit Secrets.
 

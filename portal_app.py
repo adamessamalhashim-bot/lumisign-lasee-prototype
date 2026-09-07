@@ -80,7 +80,7 @@ def login_page() -> None:
     left, center, right = st.columns([1, 1.2, 1])
     with center:
         if st.button("تسجيل الدخول باستخدام Google", type="primary", use_container_width=True):
-            st.login()
+            st.login("google")
 
 
 if not bool(getattr(st.user, "is_logged_in", False)):
