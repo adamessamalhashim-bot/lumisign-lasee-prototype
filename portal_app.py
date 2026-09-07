@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import hmac
 import json
 from datetime import datetime, timezone
 from html import escape
@@ -72,24 +73,50 @@ def login_page() -> None:
         <div class="login-card">
           <h1>🤟 LumiSign</h1>
           <h3>منصة تعلم لغة الإشارة السعودية</h3>
-          <p>سجّل الدخول بحساب Google للوصول إلى تجربة تحليل الإشارة.</p>
+          <p>دخول آمن للمدير، مع إمكانية تجربة المنصة كزائر.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    left, center, right = st.columns([1, 1.2, 1])
+    left, center, right = st.columns([1, 1.35, 1])
     with center:
-        if st.button("تسجيل الدخول باستخدام Google", type="primary", use_container_width=True):
-            st.login("google")
+        email = st.text_input("البريد الإلكتروني", key="login_email")
+        password = st.text_input("كلمة المرور", type="password", key="login_password")
+        try:
+            admin_config = st.secrets["admin"]
+            configured_email = str(admin_config["email"]).strip().lower()
+            configured_password = str(admin_config["password"])
+        except Exception:
+            configured_email = ADMIN_EMAIL
+            configured_password = ""
+
+        if st.button("دخول المدير", type="primary", use_container_width=True):
+            valid_email = email.strip().lower() == configured_email
+            valid_password = bool(configured_password) and hmac.compare_digest(
+                password, configured_password
+            )
+            if valid_email and valid_password:
+                st.session_state["session_active"] = True
+                st.session_state["user_email"] = configured_email
+                st.session_state["user_name"] = "آدم الهاشم"
+                st.rerun()
+            else:
+                st.error("البريد الإلكتروني أو كلمة المرور غير صحيحة.")
+
+        if st.button("الدخول كزائر للتجربة", use_container_width=True):
+            st.session_state["session_active"] = True
+            st.session_state["user_email"] = "guest"
+            st.session_state["user_name"] = "زائر LumiSign"
+            st.rerun()
 
 
-if not bool(getattr(st.user, "is_logged_in", False)):
+if not st.session_state.get("session_active", False):
     login_page()
     st.stop()
 
 
-user_email = str(getattr(st.user, "email", "")).strip().lower()
-user_name = str(getattr(st.user, "name", "مستخدم LumiSign"))
+user_email = str(st.session_state.get("user_email", "guest")).strip().lower()
+user_name = str(st.session_state.get("user_name", "مستخدم LumiSign"))
 is_admin = user_email == ADMIN_EMAIL
 
 account_col, logout_col = st.columns([5, 1])
@@ -101,7 +128,9 @@ with account_col:
     )
 with logout_col:
     if st.button("تسجيل الخروج", use_container_width=True):
-        st.logout()
+        for key in ["session_active", "user_email", "user_name", "login_email", "login_password"]:
+            st.session_state.pop(key, None)
+        st.rerun()
 
 
 @st.cache_resource

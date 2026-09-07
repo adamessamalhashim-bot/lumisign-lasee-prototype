@@ -17,20 +17,18 @@
 
 جميع ملفات التشغيل الثلاثة تفتح النظام نفسه، لذلك لن تظهر واجهات مختلفة.
 
-ترتيب Streamlit Secrets المطلوب:
+ترتيب Streamlit Secrets المطلوب للنسخة المستقرة:
 
-[auth]
-redirect_uri = "https://رابط-تطبيقك.streamlit.app/oauth2callback"
-cookie_secret = "قيمة إنجليزية قوية"
-
-[auth.google]
-client_id = "Google Client ID"
-client_secret = "Google Client Secret"
-server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+[admin]
+email = "adamessam.alhashim@gmail.com"
+password = "كلمة مرور إنجليزية قوية تختارها"
 
 [supabase]
 url = "https://معرف-مشروعك.supabase.co"
 key = "Supabase secret key"
+
+لا يحتاج هذا الإصدار إلى Google OAuth. يدخل آدم بالبريد وكلمة المرور،
+بينما يستطيع بقية المستخدمين اختيار "الدخول كزائر للتجربة" دون رؤية أدوات الإدارة.
 
 لا تضع مفتاح Supabase داخل GitHub. يجب أن يبقى فقط في Streamlit Secrets.
 
