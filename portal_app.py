@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import hmac
 import json
+import tempfile
 from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
@@ -21,6 +22,7 @@ from core.evidence import build_evidence_manifest, evidence_html
 from core.hand_analyzer import HandAnalyzer, ghost_overlay
 from core.reference_store import ReferenceStore
 from core.validation import save_validation_report, validate_single_sign_participant_holdout
+from core.video_sign import extract_video_sequence, load_reference, match_sequence
 
 
 ADMIN_EMAIL = "adamessam.alhashim@gmail.com"
@@ -93,7 +95,7 @@ def login_page() -> None:
         if st.button("دخول المدير", type="primary", use_container_width=True):
             valid_email = email.strip().lower() == configured_email
             valid_password = bool(configured_password) and hmac.compare_digest(
-                password, configured_password
+                password.encode("utf-8"), configured_password.encode("utf-8")
             )
             if valid_email and valid_password:
                 st.session_state["session_active"] = True
@@ -205,6 +207,51 @@ def decode(upload) -> np.ndarray:
     return cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
 
 
+def dynamic_video_page() -> None:
+    st.markdown("### التعرّف على إشارة متحركة")
+    st.info(
+        "المرجع الأولي الحالي: «السلام عليكم» من فيديو مترجمة. "
+        "تزداد موثوقية النموذج عند إضافة مشاركين ومقاطع أخرى."
+    )
+    upload = st.file_uploader(
+        "ارفع فيديو وأدِّ إشارة «السلام عليكم» كاملة",
+        type=["mp4", "mov", "avi", "m4v"],
+        key="dynamic_attempt_video",
+    )
+    if upload is None or not st.button(
+        "تحليل الحركة", type="primary", use_container_width=True, key="analyze_dynamic_video"
+    ):
+        return
+    suffix = Path(upload.name).suffix or ".mp4"
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary:
+            temporary.write(upload.getvalue())
+            temporary_path = Path(temporary.name)
+        with st.spinner("جارٍ استخراج حركة اليد ومقارنتها بالمرجع..."):
+            attempt, detection = extract_video_sequence(temporary_path)
+            reference, details = load_reference("data/salam_alaykum_sequence.json")
+            result = match_sequence(attempt, reference)
+        columns = st.columns(3)
+        columns[0].metric("الإشارة", result["sign_name"])
+        columns[1].metric("درجة المطابقة الأولية", f'{result["score"]:.1f}%')
+        columns[2].metric("اكتشاف اليد", f'{detection["detection_rate"]:.1f}%')
+        st.progress(int(result["score"]))
+        if result["score"] >= result["threshold"]:
+            st.success("تطابقت الحركة مع المرجع الأولي لإشارة «السلام عليكم».")
+        else:
+            st.warning("أعد المحاولة: أظهر اليد كاملة ونفّذ العبارة من البداية إلى النهاية.")
+        st.caption(
+            f'الحالة: {result["status"]} · المرجع: {details["model_status"]} · '
+            "لا يُحفظ الفيديو الخام."
+        )
+    except Exception as exc:
+        st.error(f"تعذّر تحليل الفيديو: {exc}")
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def analysis_page() -> None:
     st.markdown(
         """
@@ -221,6 +268,15 @@ def analysis_page() -> None:
     bank = reference_bank()
     if not bank:
         st.error("تعذّر تحميل بنك الإشارات التجريبي. يرجى المحاولة لاحقًا.")
+        return
+
+    experience = st.radio(
+        "نوع التجربة",
+        ["إشارة ثابتة (صورة)", "إشارة متحركة (فيديو)"],
+        horizontal=True,
+    )
+    if experience == "إشارة متحركة (فيديو)":
+        dynamic_video_page()
         return
 
     st.markdown("### جرّب الإشارة الآن")

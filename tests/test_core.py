@@ -8,6 +8,7 @@ from core.dataset import SaudiSignDataset, normalized_features
 from core.evidence import build_evidence_manifest, evidence_html, sha256_file
 from core.hand_analyzer import HandAnalyzer
 from core.validation import validate_single_sign_participant_holdout
+from core.video_sign import dtw_distance, match_sequence, temporal_features
 
 
 def sample_hand():
@@ -147,3 +148,10 @@ def test_evidence_manifest_hashes_real_artifacts(tmp_path):
     assert manifest["artifact_integrity"][0]["sha256"] == sha256_file(sample_file)
     assert manifest["audit"]["valid"] is True
     assert b"LumiSign" in evidence_html(manifest)
+
+
+def test_dynamic_sequence_identical_reference_scores_100():
+    frames = [sample_hand() + np.array([index * 0.002, 0.0, 0.0]) for index in range(8)]
+    features = temporal_features(frames)
+    assert dtw_distance(features, features) == 0.0
+    assert match_sequence(features, features)["score"] == 100.0
