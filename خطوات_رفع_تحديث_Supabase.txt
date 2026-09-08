@@ -7,6 +7,7 @@
 4) ارفع جميع محتويات مجلد LumiSign_Portal_Ready إلى جذر المستودع.
 5) استخدم تطبيق Streamlit واحد فقط، واجعل Main file path هو: app.py
 6) اضغط Commit changes وانتظر إعادة تشغيل التطبيق.
+7) احذف packages.txt من GitHub إن كان موجودًا؛ OpenCV يعمل الآن بنسخة Headless ولا يحتاج apt.
 
 الملفات المهمة في هذا التحديث:
 - portal_app.py
