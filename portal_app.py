@@ -22,7 +22,11 @@ from core.evidence import build_evidence_manifest, evidence_html
 from core.hand_analyzer import HandAnalyzer, ghost_overlay
 from core.reference_store import ReferenceStore
 from core.validation import save_validation_report, validate_single_sign_participant_holdout
-from core.video_sign import extract_video_sequence, load_reference, match_sequence
+from core.video_sign import (
+    extract_video_sequence,
+    load_reference,
+    match_reference_bank,
+)
 
 
 ADMIN_EMAIL = "adamessam.alhashim@gmail.com"
@@ -230,8 +234,19 @@ def dynamic_video_page() -> None:
             temporary_path = Path(temporary.name)
         with st.spinner("جارٍ استخراج حركة اليد ومقارنتها بالمرجع..."):
             attempt, detection = extract_video_sequence(temporary_path)
-            reference, details = load_reference("data/salam_alaykum_sequence.json")
-            result = match_sequence(attempt, reference)
+            local_reference, details = load_reference("data/salam_alaykum_sequence.json")
+            references = [local_reference]
+            cloud = get_cloud_store()
+            if cloud is not None:
+                try:
+                    references.extend(
+                        np.asarray(row["features"], dtype=np.float64)
+                        for row in cloud.dynamic_references("السلام عليكم")
+                        if row.get("features")
+                    )
+                except Exception:
+                    pass
+            result = match_reference_bank(attempt, references)
         columns = st.columns(3)
         columns[0].metric("الإشارة", result["sign_name"])
         columns[1].metric("درجة المطابقة الأولية", f'{result["score"]:.1f}%')
@@ -242,7 +257,7 @@ def dynamic_video_page() -> None:
         else:
             st.warning("أعد المحاولة: أظهر اليد كاملة ونفّذ العبارة من البداية إلى النهاية.")
         st.caption(
-            f'الحالة: {result["status"]} · المرجع: {details["model_status"]} · '
+            f'الحالة: {result["status"]} · عدد المراجع: {result["reference_count"]} · '
             "لا يُحفظ الفيديو الخام."
         )
     except Exception as exc:
@@ -532,6 +547,55 @@ def admin_references() -> None:
         signs = store.list_signs()
     st.markdown("### المراجع المسجلة")
     st.write(signs if signs else "لا توجد مراجع مضافة يدويًا حتى الآن.")
+
+    st.divider()
+    st.markdown("### تسجيل مرجع فيديو متحرك")
+    st.caption("يُحفظ تسلسل نقاط اليد فقط في Supabase، ولا يُحفظ الفيديو الخام.")
+    dynamic_participant = st.text_input(
+        "رمز المشارك/المصدر",
+        value="Translator-P02",
+        key="dynamic_reference_participant",
+    )
+    dynamic_source = st.text_input(
+        "رابط أو وصف مصدر الفيديو",
+        value="Provided by Saudi Sign Language translator",
+        key="dynamic_reference_source",
+    )
+    dynamic_upload = st.file_uploader(
+        "ارفع فيديو «السلام عليكم» فقط",
+        type=["mp4", "mov", "avi", "m4v"],
+        key="dynamic_reference_upload",
+    )
+    if dynamic_upload is not None and st.button(
+        "استخراج الحركة وحفظ المرجع", type="primary", key="save_dynamic_reference"
+    ):
+        temporary_path = None
+        try:
+            if cloud is None:
+                raise RuntimeError("اتصال Supabase غير متاح.")
+            suffix = Path(dynamic_upload.name).suffix or ".mp4"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary:
+                temporary.write(dynamic_upload.getvalue())
+                temporary_path = Path(temporary.name)
+            with st.spinner("جارٍ استخراج نقاط حركة اليد..."):
+                features, metadata = extract_video_sequence(temporary_path)
+                saved = cloud.save_dynamic_reference(
+                    "السلام عليكم",
+                    dynamic_participant,
+                    dynamic_source,
+                    features,
+                    metadata,
+                    user_email,
+                )
+            st.success(
+                f'حُفظ مرجع الفيديو بنجاح · لقطات اليد: {metadata["detected_frames"]} · '
+                f'نسبة الاكتشاف: {metadata["detection_rate"]:.1f}%'
+            )
+        except Exception as exc:
+            st.error(f"تعذّر حفظ مرجع الفيديو: {exc}")
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
 
 
 def admin_dataset() -> None:

@@ -93,6 +93,16 @@ def match_sequence(attempt: np.ndarray, reference: np.ndarray) -> dict:
     }
 
 
+def match_reference_bank(attempt: np.ndarray, references: list[np.ndarray]) -> dict:
+    if not references:
+        raise ValueError("لا توجد مراجع فيديو متاحة لهذه الإشارة.")
+    results = [match_sequence(attempt, reference) for reference in references]
+    best = max(results, key=lambda item: item["score"])
+    best["reference_count"] = len(references)
+    best["all_scores"] = [item["score"] for item in results]
+    return best
+
+
 def save_reference(path: str | Path, features: np.ndarray, metadata: dict) -> Path:
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)

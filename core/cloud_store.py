@@ -187,6 +187,38 @@ class CloudStore:
         )
         return dict(response.data[0]) if response.data else None
 
+    def save_dynamic_reference(
+        self,
+        sign_name: str,
+        participant_id: str,
+        source_url: str,
+        features: np.ndarray,
+        metadata: dict,
+        created_by: str,
+    ) -> dict[str, Any]:
+        payload = {
+            "sign_name": sign_name.strip(),
+            "participant_id": participant_id.strip(),
+            "source_url": source_url.strip(),
+            "features": np.asarray(features, dtype=float).tolist(),
+            "metadata": metadata,
+            "active": True,
+            "created_by": created_by,
+        }
+        response = self.client.table("dynamic_sign_references").insert(payload).execute()
+        return dict((response.data or [payload])[0])
+
+    def dynamic_references(self, sign_name: str) -> list[dict[str, Any]]:
+        response = (
+            self.client.table("dynamic_sign_references")
+            .select("id,sign_name,participant_id,source_url,features,metadata,created_at")
+            .eq("sign_name", sign_name.strip())
+            .eq("active", True)
+            .order("created_at")
+            .execute()
+        )
+        return list(response.data or [])
+
 
 def records_to_training_bundle(records: list[dict[str, Any]]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     if not records:

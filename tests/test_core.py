@@ -8,7 +8,7 @@ from core.dataset import SaudiSignDataset, normalized_features
 from core.evidence import build_evidence_manifest, evidence_html, sha256_file
 from core.hand_analyzer import HandAnalyzer
 from core.validation import validate_single_sign_participant_holdout
-from core.video_sign import dtw_distance, match_sequence, temporal_features
+from core.video_sign import dtw_distance, match_reference_bank, match_sequence, temporal_features
 
 
 def sample_hand():
@@ -155,3 +155,6 @@ def test_dynamic_sequence_identical_reference_scores_100():
     features = temporal_features(frames)
     assert dtw_distance(features, features) == 0.0
     assert match_sequence(features, features)["score"] == 100.0
+    bank_result = match_reference_bank(features, [features, features])
+    assert bank_result["reference_count"] == 2
+    assert bank_result["score"] == 100.0
