@@ -551,26 +551,32 @@ def admin_references() -> None:
     st.divider()
     st.markdown("### تسجيل مرجع فيديو متحرك")
     st.caption("يُحفظ تسلسل نقاط اليد فقط في Supabase، ولا يُحفظ الفيديو الخام.")
-    dynamic_participant = st.text_input(
-        "رمز المشارك/المصدر",
-        value="Translator-P02",
-        key="dynamic_reference_participant",
-    )
-    dynamic_source = st.text_input(
-        "رابط أو وصف مصدر الفيديو",
-        value="Provided by Saudi Sign Language translator",
-        key="dynamic_reference_source",
-    )
-    dynamic_upload = st.file_uploader(
-        "ارفع فيديو «السلام عليكم» فقط",
-        type=["mp4", "mov", "avi", "m4v"],
-        key="dynamic_reference_upload",
-    )
-    if dynamic_upload is not None and st.button(
-        "استخراج الحركة وحفظ المرجع", type="primary", key="save_dynamic_reference"
-    ):
+    # Keep the upload inside a form so selecting a video does not trigger a
+    # full rerun of every admin tab before the user asks us to process it.
+    with st.form("dynamic_reference_form", clear_on_submit=False):
+        dynamic_participant = st.text_input(
+            "رمز المشارك/المصدر",
+            value="Translator-P02",
+            key="dynamic_reference_participant",
+        )
+        dynamic_source = st.text_input(
+            "رابط أو وصف مصدر الفيديو",
+            value="Provided by Saudi Sign Language translator",
+            key="dynamic_reference_source",
+        )
+        dynamic_upload = st.file_uploader(
+            "ارفع فيديو «السلام عليكم» فقط",
+            type=["mp4", "mov", "avi", "m4v"],
+            key="dynamic_reference_upload",
+        )
+        save_dynamic_reference = st.form_submit_button(
+            "استخراج الحركة وحفظ المرجع", type="primary"
+        )
+    if save_dynamic_reference:
         temporary_path = None
         try:
+            if dynamic_upload is None:
+                raise ValueError("اختر ملف الفيديو أولًا.")
             if cloud is None:
                 raise RuntimeError("اتصال Supabase غير متاح.")
             suffix = Path(dynamic_upload.name).suffix or ".mp4"
