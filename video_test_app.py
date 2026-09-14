@@ -32,7 +32,11 @@ with st.form("video_test_form"):
         type=["mp4", "mov", "avi", "m4v"],
         help="من الجوال اضغط هنا، ثم اختر تسجيل فيديو أو Take Video"
     )
-submitted = st.button("تحليل الإشارة", type="primary")
+    submitted = st.form_submit_button(
+        "تحليل الإشارة",
+        type="primary"
+    )
+
 if submitted:
     if upload is None:
         st.error("اختر فيديو أولًا.")
