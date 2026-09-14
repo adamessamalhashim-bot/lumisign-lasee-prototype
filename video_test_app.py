@@ -26,8 +26,11 @@ REFERENCES = [np.asarray(row["features"], dtype=np.float64) for row in REFERENCE
 
 st.info("ارفع محاولة جديدة مدتها 3–8 ثوانٍ، مع ظهور اليد كاملة وخلفية واضحة.")
 with st.form("video_test_form"):
-    upload = st.file_uploader("فيديو المحاولة", type=["mp4", "mov", "avi", "m4v"])
-    submitted = st.form_submit_button("تحليل الإشارة", type="primary")
+upload = st.file_uploader(
+    "🎥 سجّل فيديو بالكاميرا أو ارفع فيديو جاهز",
+    type=["mp4", "mov", "avi", "m4v"],
+    help="من الجوال اضغط هنا، ثم اختر تسجيل فيديو أو Take Video"
+)    submitted = st.form_submit_button("تحليل الإشارة", type="primary")
 
 if submitted:
     if upload is None:
